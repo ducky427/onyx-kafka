@@ -28,13 +28,13 @@
    :onyx.messaging/bind-addr "localhost"})
 
 (def workflow
-  [[:in :identity]
+  [[:read-messages :identity]
    [:identity :out]])
 
 (def n-peers (count (set (mapcat identity workflow))))
 
 (def catalog
-  [{:onyx/name :in
+  [{:onyx/name :read-messages
     :onyx/plugin :onyx.plugin.kafka/read-messages
     :onyx/type :input
     :onyx/medium :kafka
@@ -62,7 +62,7 @@
     :onyx/doc "Writes segments to dev null"}])
 
 (def lifecycles
-  [{:lifecycle/task :in
+  [{:lifecycle/task :read-messages
     :lifecycle/calls :onyx.plugin.kafka/read-messages-calls}])
 
 (defn -main
