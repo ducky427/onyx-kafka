@@ -1,8 +1,19 @@
 (ns kafka-sample.core
-  (:require [onyx.test-helper]
+  (:require [cognitect.transit :as transit]
+            [clojure.walk :as walk]
+            [onyx.test-helper]
             [onyx.plugin.kafka]
+            [onyx.tasks.kafka]
             [onyx.api])
+  (:import (java.io ByteArrayInputStream))
   (:gen-class))
+
+(defn transit-decode
+  [xs]
+  (let [ys     (bytes xs)
+        in     (ByteArrayInputStream. ys)
+        reader (transit/reader in :msgpack)]
+    (transit/read reader)))
 
 (def segments (atom 0))
 
@@ -10,7 +21,11 @@
   [segment]
   (let [current (swap! segments inc)]
     (println current)
-    segment))
+    #_(println segment)
+    #_(println (= current 100))
+    (if (= current 100)
+      {}
+      segment)))
 
 (def id (java.util.UUID/randomUUID))
 
@@ -28,8 +43,8 @@
    :onyx.messaging/bind-addr "localhost"})
 
 (def workflow
-  [[:read-messages :identity]
-   [:identity :out]])
+  [[:read-messages :counter]
+   [:counter :out]])
 
 (def n-peers (count (set (mapcat identity workflow))))
 
@@ -40,19 +55,19 @@
     :onyx/medium :kafka
     :onyx/min-peers 1
     :onyx/max-peers 1
-    :onyx/batch-size 100
+    :onyx/batch-size 1
     :kafka/topic "test-data"
-    :kafka/group-id "onyx-consumer3"
+    :kafka/group-id "onyx-consumer-9"
     :kafka/zookeeper "127.0.0.1:2181"
     :kafka/offset-reset :smallest
     :kafka/force-reset? true
-    :kafka/deserializer-fn :onyx.tasks.kafka/deserialize-message-edn
+    :kafka/deserializer-fn ::transit-decode
     :kafka/wrap-with-metadata? false
     :onyx/doc "Reads messages from a Kafka topic"}
-    {:onyx/name :identity
-     :onyx/fn :clojure.core/identity
-     :onyx/batch-size 100
-     :onyx/type :function}
+   {:onyx/name :counter
+    :onyx/fn ::counter-task
+    :onyx/batch-size 100
+    :onyx/type :function}
    {:onyx/name :out
     :onyx/plugin :onyx.test-helper/dummy-output
     :onyx/type :output
@@ -69,7 +84,7 @@
   [& args]
   (let [env         (onyx.api/start-env env-config)
         peer-group  (onyx.api/start-peer-group peer-config)
-        v-peers     (onyx.api/start-peers (* 2 n-peers) peer-group)
+        v-peers     (onyx.api/start-peers n-peers peer-group)
         job-id      (:job-id
                      (onyx.api/submit-job
                       peer-config
