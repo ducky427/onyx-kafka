@@ -3,7 +3,7 @@
   :url "http://onyxplatform.org"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :jvm-opts ["-Xmx6g"]
+  :jvm-opts ^:replace ["-server" "-Xmx6g"]
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [org.onyxplatform/onyx "0.9.10-beta4"]
                  [org.onyxplatform/onyx-kafka "0.9.10.0-beta3"]

@@ -5,7 +5,8 @@
             [onyx.plugin.kafka]
             [onyx.tasks.kafka]
             [onyx.api])
-  (:import (java.io ByteArrayInputStream))
+  (:import (java.util Date)
+           (java.io ByteArrayInputStream))
   (:gen-class))
 
 (defn transit-decode
@@ -20,12 +21,8 @@
 (defn counter-task
   [segment]
   (let [current (swap! segments inc)]
-    (println current)
-    #_(println segment)
-    #_(println (= current 100))
-    (if (= current 100)
-      {}
-      segment)))
+    (println (Date.) current (:offset segment))
+    segment))
 
 (def id (java.util.UUID/randomUUID))
 
@@ -55,14 +52,14 @@
     :onyx/medium :kafka
     :onyx/min-peers 1
     :onyx/max-peers 1
-    :onyx/batch-size 1
+    :onyx/batch-size 100
     :kafka/topic "test-data"
     :kafka/group-id "onyx-consumer-9"
     :kafka/zookeeper "127.0.0.1:2181"
     :kafka/offset-reset :smallest
     :kafka/force-reset? true
     :kafka/deserializer-fn ::transit-decode
-    :kafka/wrap-with-metadata? false
+    :kafka/wrap-with-metadata? true
     :onyx/doc "Reads messages from a Kafka topic"}
    {:onyx/name :counter
     :onyx/fn ::counter-task
@@ -92,8 +89,7 @@
                        :workflow workflow
                        :lifecycles lifecycles
                        :task-scheduler :onyx.task-scheduler/balanced}))]
-    (println job-id)
-    (println "Stopping")
+    (println (Date.) job-id n-peers)
     (onyx.api/await-job-completion peer-config job-id)
     (doseq [v-peer v-peers]
       (onyx.api/shutdown-peer v-peer))
