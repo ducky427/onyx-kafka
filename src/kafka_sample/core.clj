@@ -21,7 +21,8 @@
 (defn counter-task
   [segment]
   (let [current (swap! segments inc)]
-    (println (Date.) current (:offset segment))
+    (when (zero? (mod (:offset segment) 10000))
+      (println (Date.) current (:offset segment)))
     segment))
 
 (def id (java.util.UUID/randomUUID))
@@ -60,6 +61,7 @@
     :kafka/force-reset? true
     :kafka/deserializer-fn ::transit-decode
     :kafka/wrap-with-metadata? true
+    :kafka/receive-buffer-bytes 65536
     :onyx/doc "Reads messages from a Kafka topic"}
    {:onyx/name :counter
     :onyx/fn ::counter-task
