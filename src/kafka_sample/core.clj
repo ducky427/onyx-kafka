@@ -20,9 +20,11 @@
 
 (defn counter-task
   [segment]
-  (let [current (swap! segments inc)]
-    (when (zero? (mod (:offset segment) 10000))
-      (println (Date.) current (:offset segment)))
+  (let [current (swap! segments inc)
+        offset  (:offset segment)]
+    (when (or (zero? (mod offset 10000))
+              (= current 50000))
+      (println (Date.) current offset))
     segment))
 
 (def id (java.util.UUID/randomUUID))
